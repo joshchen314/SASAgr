@@ -1,0 +1,347 @@
+proc import datafile="\\saseg\D54\D54B\0_DATA\SS104TT.xlsx"
+   DBMS=XLSX
+   out=A102 REPLACE;
+   SHEET="農牧戶";
+   range="農牧戶$A1:JR331";
+   GETNAMES=YES;  
+run;
+PROC SORT DATA=A102; BY A000000;
+data A102_1;
+ set A102;
+%MACRO AA1(A); 		%DO i=1 %TO &A;			CNTZ&I=0;		%END;		%MEND AA1;
+%AA1(20);
+IF A022001=. THEN A022001=0;	IF A022002=. THEN A022002=0;
+
+IF A012001=. THEN A012001=0;		IF A011001=. THEN A011001=0;	A0101=SUM(A011001,A012001);
+IF A0101=0 THEN CNTZ1=1;
+If A011001=3 then DO;
+	IF 1<=A012001<=7 THEN CNTZ1=0;	ELSE CNTZ1=1;
+END;
+If 1<=A011001<=2 then DO;
+	IF A012001=0 THEN CNTZ1=0;ELSE CNTZ1=1;
+END;
+If A011001=1 then DO;
+	IF SUM(A040001,A051002)<=1 THEN CNTZ2=0;ELSE CNTZ2=1;END;
+If A011001=1 then DO;
+	IF 1<=A081001<=16 THEN CNTZ3=0;ELSE CNTZ3=1;END;
+If A011001=1 then DO;
+	IF SUM(A090001,A091001,A091002,A091003,A091004,A091005, A091006,A091007)>0 THEN CNTZ4=0;ELSE CNTZ4=1;END;
+If A011001=2 then DO;
+	IF A040001=1 & A051002=1 & A091002=1 THEN CNTZ5=0;ELSE CNTZ5=1;END;
+If 1<=A011001<=2 then DO;
+	IF 1<=A070001<=3 THEN CNTZ6=0;ELSE CNTZ6=1;END;
+
+%MACRO A1(F,A,B,C);  /*戶內人口數*/
+TUT&A=0; 	BB=0;		GG=0;		HH=0;
+%DO i=1 %TO &B;
+	%IF 1<=&I<=9 %then %DO;
+		IF &F.&A.20&I.1 =1 THEN BB=BB+1;
+		IF &F.&A.20&I.1=2 THEN GG=GG+1;
+		IF &F.&A.20&I.1=. THEN HH=HH+1;
+	%END;
+	%IF 10<=&I<=19 %then %DO;
+		IF &F.&A.2&I.1 =1 THEN BB=BB+1;
+		IF &F.&A.2&I.1=2 THEN GG=GG+1;
+		IF &F.&A.2&I.1=. THEN HH=HH+1;
+	%END;
+%END;
+CNT&C.1=0; 	CNT&C.2=0;
+If 1<=A011001<=2 then DO;
+	IF A022001 ^=BB THEN CNT&C.1=1; 
+	IF A022002 ^=GG THEN CNT&C.2=1;
+	CNT&C.ZZ=CNT&C.1+CNT&C.2;	
+end;
+IF CNT&C.ZZ=>1 THEN CNTZ&C=1;
+%MEND A1;
+%A1(A,11,15,7);
+/*-------------------------------------------------------------------------------------*/
+%MACRO A3(F,A,B,C,D,E);  /* 問項  不完整*/
+CNT=0;		TUTU&e=0;
+%DO i=1 %TO &B;/*17*/ 
+	CN&E.&i=0;			KL&E.&i=0;		KK&E.&i.&D =&C-1;
+		%if 1<=&i<=9 %then %do;
+				%DO J=&C %TO &D;
+						if &F.0&A.&J.0&I.1=. then &F.0&A.&J.0&I.1=0;
+						IF &F.0&A.&J.0&I.1>0 THEN KK&E.&i.&D=KK&E.&i.&D+1;ELSE KK&E.&i.&D=KK&E.&i.&D+0;
+						KL&E.&i	=	KL&E.&i	+	&F.0&A.&J.0&I.1;
+						IF KL&E.&i>0 THEN DO;
+   								IF KK&E.&i.&D<&D THEN CN&E.&i=1; 
+								else IF KK&E.&i.&D=&D THEN CN&E.&i=0; END;
+					%end;
+			%end;
+			%IF 10<=&I<=99 %then %DO;
+					%DO J=&C %TO &D;
+							if &F.0&A.&J.&I.1=. then &F.0&A.&J.&I.1=0;
+							IF &F.0&A.&J.&I.1>0 THEN KK&E.&i.&D=KK&E.&i.&D+1;ELSE KK&E.&i.&D=KK&E.&i.&D+0;
+							KL&E.&i=KL&E.&i+&F.0&A.&J.&I.1;	
+								IF KL&E.&i>0 THEN DO;
+	   									IF KK&E.&i.&D<&D THEN CN&E.&i=1;  else IF KK&E.&i.&D=&D THEN CN&E.&i=0;END;
+					%end;
+			%END;
+TUTU&e=(TUTU&e+CN&E.&i);
+%END;/*17*/    
+CNTZ&E=TUTU&e;
+%MEND A3;   /* 問項  不完整*/
+%A3(A,3,20,1,7,8);/*農地不完整*/
+
+%MACRO A3b(F,A,B,C,D,E);  /* 問項  不完整*/
+KKCNT=0;		KKTUTU&e=0;
+%DO i=1 %TO &B;/*17*/ 
+	KKCN&E.&i=0;		
+KKCN&E.&i.2=0; KKCN&E.&i.3=0; KKCN&E.&i.4=0; KKCN&E.&i.5=0;
+			%if 1<=&i<=9 %then %do;
+					IF &F.0&A.20&I.1>0 THEN DO;	IF &F.0&A.20&I.1>2 OR &F.0&A.20&I.1<=0 THEN KKCN&E.&i.2=1; ELSE KKCN&E.&i.2=0;END;
+					IF &F.0&A.50&I.1>0 THEN DO;	IF &F.0&A.50&I.1>4 OR &F.0&A.50&I.1<=0 THEN KKCN&E.&i.3=1; ELSE KKCN&E.&I.3=0;END;
+					IF &F.0&A.60&I.1>0 THEN DO; IF &F.0&A.60&I.1>5 OR &F.0&A.60&I.1<=0 THEN KKCN&E.&i.4=1; ELSE KKCN&E.&i.4	=0;END;
+ 					IF &F.0&A.70&I.1>0 THEN DO; IF &F.0&A.70&I.1>7 OR &F.0&A.70&I.1<=0 THEN KKCN&E.&i.5=1; ELSE KKCN&E.&i.5	=0;	END;
+								KKCN&E.&i=KKCN&E.&i.2+KKCN&E.&i.3+KKCN&E.&i.4+KKCN&E.&i.5;			
+			%end;
+			%IF 10<=&I<=99 %then %DO;
+					IF &F.0&A.2&I.1>0 THEN DO;	IF &F.0&A.2&I.1>2 OR &F.0&A.2&I.1<=0 THEN KKCN&E.&i.2=1; ELSE KKCN&E.&i.2=0;END;
+					IF &F.0&A.5&I.1>0 THEN DO;	IF &F.0&A.5&I.1>4 OR &F.0&A.5&I.1<=0 THEN KKCN&E.&i.3=1; ELSE KKCN&E.&I.3=0;END;
+					IF &F.0&A.6&I.1>0 THEN DO; IF &F.0&A.6&I.1>5 OR &F.0&A.6&I.1<=0 THEN KKCN&E.&i.4=1; ELSE KKCN&E.&i.4=0;END;
+ 					IF &F.0&A.7&I.1>0 THEN DO; IF &F.0&A.7&I.1>7 OR &F.0&A.7&I.1<=0 THEN KKCN&E.&i.5=1; ELSE KKCN&E.&i.5=0;	END;
+								KKCN&E.&i=KKCN&E.&i.2+KKCN&E.&i.3+KKCN&E.&i.4+KKCN&E.&i.5;			
+			%END;
+KKTUTU&e=(KKTUTU&e+KKCN&E.&i);
+%END;/*17*/    
+KKCNTZ&E=KKTUTU&e;
+%MEND A3B;   /* 問項  不完整*/
+%A3B(A,3,20,1,7,8);
+/*-------------------------------------------------------------------------------*/
+
+
+%MACRO A3S(F,A,B,C,D,E);  /* 問項 3 :  人工鋪面  配合  利用目的*/
+CNT&E=0;TUT&A=0;
+%DO i=1 %TO &B;/*17*/ 
+	CN&E.&i=0;			KL&E.&i=0;		KKK&E.&i=0;		
+		%if 1<=&i<=9 %then %do;
+						IF &F.0&A.20&I.1=2 THEN DO;
+									IF 4<=&F.0&A.70&I.1<=6 THEN KKK&E.&i=KKK&E.&i+1; END;
+		%END;
+		%IF 10<=&I<=99 %then %DO;
+						IF &F.0&A.2&I.1=2 THEN DO;
+									IF 4<=&F.0&A.7&I.1<=6 THEN KKK&E.&i=KKK&E.&i+1; END;
+		%END;
+			TUT&A=(TUT&A+KKK&E.&i);	
+%END;/*17*/    
+CNTZ&E=TUT&A;
+%MEND A3S;   /* 問項 3 :  人工鋪面  配合  利用目的*/
+%A3S(A,3,20,1,7,9);
+
+
+%MACRO A4(F,A,B,C);  /*綠肥  配合  補助  F=表別, A=問項, B=作物數量, C=規則序號*/
+BB=0;
+%DO i=1 %TO &B;
+	%IF 1<=&I<=9 %then %DO;
+		IF &F.0&A.10&I.1 ="311" THEN BB=BB+1;
+	%END;
+	%IF 10<=&I<=19 %then %DO;
+		IF &F.0&A.1&I.1 ="311" THEN BB=BB+1;
+	%END;
+%END;
+IF BB>0 THEN DO;
+	IF A121201=. THEN A121201=0; 		IF A121301=. THEN A121301=0;		CNTZ&C=0;
+	IF A121201=0 OR A121301=0 OR 2<=A121301<=6 THEN CNTZ&C=1;
+END;
+%MEND A4;/*綠肥  配合  補助   F=表別, A=問項, B=作物數量, C=規則序號*/
+%A4(A,4,15,10);
+
+/*----------------------------------------------------------------------------*/
+%A3(A,4,20,1,6,11);  /*農作物 不完整*/
+
+%MACRO A3C(F,A,B,C,D,E);  /* 問項  不完整*/
+KKCNT=0;		KKTUTU&e=0;
+%DO i=1 %TO &B;/*17*/ 
+	KKCN&E.&i=0;		
+KKCN&E.&i.2=0; KKCN&E.&i.3=0; KKCN&E.&i.4=0; 
+			%if 1<=&i<=9 %then %do;
+					IF &F.0&A.30&I.2>0 THEN DO;	IF &F.0&A.30&I.2>6 OR &F.0&A.30&I.2<=0 THEN KKCN&E.&i.2=1; ELSE KKCN&E.&i.2=0;END;
+					IF &F.0&A.50&I.1>0 THEN DO;	IF &F.0&A.50&I.1>8 OR &F.0&A.50&I.1<=0 THEN KKCN&E.&i.3=1; ELSE KKCN&E.&I.3=0;END;
+					IF &F.0&A.60&I.1>0 THEN DO; IF &F.0&A.60&I.1>4 OR &F.0&A.60&I.1<=0 THEN KKCN&E.&i.4=1; ELSE KKCN&E.&i.4	=0;END;
+								KKCN&E.&i=KKCN&E.&i.2+KKCN&E.&i.3+KKCN&E.&i.4;				
+			%end;
+			%IF 10<=&I<=99 %then %DO;
+					IF &F.0&A.3&I.2>0 THEN DO;	IF &F.0&A.3&I.2>6 OR &F.0&A.3&I.2<=0 THEN KKCN&E.&i.2=1; ELSE KKCN&E.&i.2=0;END;
+					IF &F.0&A.5&I.1>0 THEN DO;	IF &F.0&A.5&I.1>8 OR &F.0&A.5&I.1<=0 THEN KKCN&E.&i.3=1; ELSE KKCN&E.&I.3=0;END;
+					IF &F.0&A.6&I.1>0 THEN DO; IF &F.0&A.6&I.1>4 OR &F.0&A.6&I.1<=0 THEN KKCN&E.&i.4=1; ELSE KKCN&E.&i.4	=0;END;
+								KKCN&E.&i=KKCN&E.&i.2+KKCN&E.&i.3+KKCN&E.&i.4;			
+			%END;
+KKTUTU&e=(KKTUTU&e+KKCN&E.&i);
+%END;/*17*/    
+KKCNTZ&E=KKTUTU&e;
+%MEND A3C;   /* 問項  不完整*/
+%A3C(A,4,20,1,6,11);
+/*-------------------------------------------------------------------------------------------*/
+
+
+%MACRO A5(F,A,B,C);  /* 問項 5 全部加總 與 無--- 的關係 */
+TUT&A=0;	 if A051001=. then A051001=0;		if A051002=. then A051002=0;
+%DO i=1 %TO &B;
+	%IF 1<=&I<=9 %then %DO;
+		if &F.0&A.10&I.1=. then &F.0&A.10&I.1=0;
+		TUT&A=(TUT&A+&F.0&A.10&I.1); 
+	%END;
+	%IF 10<=&I<=19 %then %DO;
+		if &F.0&A.1&I.1=. then &F.0&A.1&I.1=0;
+		TUT&A=(TUT&A+&F.0&A.1&I.1); 	
+	%END;
+%END;
+IF TUT&A>0 THEN DO;
+	IF A051001>0 & A051002=0 THEN CNTZ&C=0;	ELSE CNTZ&C=1;
+END;
+%MEND A5; /* 問項 5 全部加總 與 無--- 的關係 */
+%A5(A,5,15,12);
+
+/*--------------------------------------------------------------------*/
+%A3(A,5,15,1,3,13);/*家禽  不完整*/
+%MACRO A3D(F,A,B,C,D,E);  /* 問項  不完整*/
+KKCNT=0;		KKTUTU&e=0;
+%DO i=1 %TO &B;/*17*/ 
+	KKCN&E.&i=0;		
+KKCN&E.&i.2=0; KKCN&E.&i.3=0; KKCN&E.&i.4=0; 
+			%if 1<=&i<=9 %then %do;
+					IF &F.0&A.20&I.1>0 THEN DO;	IF &F.0&A.20&I.1>2 OR &F.0&A.20&I.1<=0 THEN KKCN&E.&i.2=1; ELSE KKCN&E.&i.2=0;END;
+								KKCN&E.&i=KKCN&E.&i.2;				
+			%end;
+			%IF 10<=&I<=99 %then %DO;
+					IF &F.0&A.2&I.1>0 THEN DO;	IF &F.0&A.2&I.1>2 OR &F.0&A.2&I.1<=0 THEN KKCN&E.&i.2=1; ELSE KKCN&E.&i.2=0;END;
+							KKCN&E.&i=KKCN&E.&i.2;			
+			%END;
+KKTUTU&e=(KKTUTU&e+KKCN&E.&i);
+%END;/*17*/    
+KKCNTZ&E=KKTUTU&e;
+%MEND A3D;   /* 問項  不完整*/
+%A3D(A,5,15,1,3,13);
+
+/*----------------------------------------------------------------------*/
+%MACRO ABC1(A); 	%DO i=1 %TO &A;		IF A08220&I=. THEN A08220&I=0;	%END;	%MEND ABC1;
+%ABC1(9);	IF A082210=. THEN A082210=0;
+IF A081001=. THEN A081001=0;	IF A082001=. THEN A082001=0;
+IF A121101=. THEN A121101=0;IF A121102=. THEN A121102=0;
+IF A122201=. THEN A122201=0;IF A121102=. THEN A121102=0;
+IF A102101=. THEN A102101=0;IF A102102=. THEN A102102=0;
+IF A102201=. THEN A102201=0;IF A102202=. THEN A102202=0;
+IF A102301=. THEN A102301=0;
+
+If A082001=1 then DO;
+	IF SUM(A082201,A082202,A082203,A082204,A082205,A082206,A082207,A082208,A082209,A082210)=0 & A121101=0 & A121102=0 THEN CNTZ14=0;ELSE CNTZ14=1;
+END;
+If 1<=A081001<=16 & A082001=0  then DO;
+	IF A082101>0 AND A121101>0 AND A121102>0 AND SUM(A082201,A082202,A082203,A082204,A082205,A082206,A082207,A082208,A082209,A082210)>0 THEN CNTZ15=0;ELSE CNTZ15=1;END;
+IF A091002=1 THEN DO;
+	IF A060001>0 AND SUM(A121101,A122201)>0 THEN CNTZ16=0; ELSE CNTZ16=1;END;
+IF A091002=1 THEN DO;
+	IF 1<=A092001<=7 THEN CNTZ17=0; ELSE CNTZ17=1;END;
+IF A091001=1 THEN DO;
+	IF SUM(A122101,A122201)>0 THEN CNTZ18=0; ELSE CNTZ18=1;END;
+IF 1<=A011001<=2 THEN DO;
+		IF SUM(A102101,A102102,A102201,A102202,A102301)>0 THEN CNTZ19=0; ELSE CNTZ19=1;
+END;
+
+%MACRO A6(F,A,B,C,D,E);  /*戶內  不完整*/
+CNT&A=0;TUT&A=0;
+%DO i=1 %TO &B;/*17*/ 
+	CN&E.&i=0;			KL&E.&i=0;		KK&E.&i.&D =&C-1;
+	%if 1<=&i<=9 %then %do;
+			%DO J=&C %TO &D;
+					if &F.&A.&J.0&I.1=. then &F.&A.&J.0&I.1=0;
+					IF &F.&A.&J.0&I.1>0 THEN KK&E.&i.&D=KK&E.&i.&D+1;ELSE KK&E.&i.&D=KK&E.&i.&D+0;
+					KL&E.&i	=	KL&E.&i	+	&F.&A.&J.0&I.1;
+			%end;
+	%end;
+	%IF 10<=&I<=99 %then %DO;
+			%DO J=&C %TO &D;
+					if &F.&A.&J.&I.1=. then &F.&A.&J.&I.1=0;
+					IF &F.&A.&J.&I.1>0 THEN KK&E.&i.&D=KK&E.&i.&D+1;ELSE KK&E.&i.&D=KK&E.&i.&D+0;
+					KL&E.&i=KL&E.&i+&F.&A.&J.&I.1;	
+			%end;
+	%END;
+IF KL&E.&i>0 THEN DO;
+   	IF KK&E.&i.&D<&D THEN CN&E.&i=1;           else CN&E.&i=0; 
+END;
+TUT&A=(TUT&A+CN&E.&i);
+%END;/*17*/    
+CNTZ&E=TUT&A;
+%MEND A6;   /*戶內  不完整*/
+%A6(A,11,20,2,8,20);		/*戶內  不完整*/
+
+
+IF A121301=. THEN A121301=0;IF A121302=. THEN A121302=0;
+IF A121303=. THEN A121303=0;IF A121304=. THEN A121304=0;
+IF A121305=. THEN A121305=0;IF A121306=. THEN A121306=0;
+IF A121201=. THEN A121201=0;
+sumA121=sum(A121201,	A121301,	A121302,	A121303,	A121304,	A121305,	A121306);
+sumA1213=sum(A121301,	A121302,	A121303,	A121304,	A121305,	A121306);
+mulA121=A121201*sumA1213;	CNTZ21=0;
+IF sumA121>0 THEN DO;
+		IF mulA121=0 THEN CNTZ21=1;
+		END;
+
+
+CNTZUM=SUM(cntZ1,cntZ2,cntZ3,cntZ4,cntZ5,cntZ6,cntZ7,cntZ8,cntZ9,cntZ10,cntZ11,cntZ12,cntZ13,cntZ14,cntZ15,cntZ16,cntZ17,cntZ18,cntZ19,cntZ20);
+
+proc summary data=A102_1;
+VAR  CNTZUM CNTZ1-CNTZ20 CNTZ21;
+CLASS HS;
+OUTPUT OUT=A102_ERROR  SUM=CNTZUM CNTZ1-CNTZ20 CNTZ21;
+run;
+
+DATA A102_Z;
+SET A102_1;
+KEEP A000000 CNTZ1-CNTZ20 KKCNTZ8 KKCNTZ11 KKCNTZ13 ;
+RUN;
+PROC FORMAT;
+  VALUE  $A102FT          '66'='臺中市' 
+                                           '67'='臺南市' 
+                                           '64'='高雄市'
+										   '07'='彰化縣'   
+                                           '09'='雲林縣'                                   
+                                           '10'='嘉義縣';
+PROC PRINT DATA=A102_ERROR    LABEL SPLIT='/';
+         TITLE '104年農林漁牧業普查第1次試驗調查農牧戶檢誤條件';
+         VAR   hs   CNTZUM CNTZ1-CNTZ21;
+        FORMAT    HS $A102FT.;
+		  LABEL   	CNTZUM='總計'
+							CNTZ1='規則1'
+							CNTZ2='規則2'
+							CNTZ3='規則3'
+							CNTZ4='規則4'
+							CNTZ5='規則5'
+							CNTZ6='規則6'
+							CNTZ7='規則7'
+							CNTZ8='規則8'
+							CNTZ9='規則9'
+							CNTZ10='規則10'
+							CNTZ11='規則11'
+							CNTZ12='規則12'
+							CNTZ13='規則13'
+							CNTZ14='規則14'
+							CNTZ15='規則15'
+							CNTZ16='規則16'
+							CNTZ17='規則17'
+							CNTZ18='規則18'
+							CNTZ19='規則19'
+							CNTZ20='規則20'
+							CNTZ21='規則21';
+RUN;
+
+
+
+
+/*data A102_2;
+SET A102_1;
+if A091002='1' then output; else delete;
+KEEP A000000 A091002 A092001 A060001 A121101 A122201 CNTZ1-CNTZ21;RUN;*/
+/*order by D050001
+group by D085001;*/
+PROC SQL;               /*---------------- SQL SQL SQL SQL SQL SQL SQL--------------------------------*/
+create table ZQL as
+SELECT A000000, hs, A091002, A092001, A060001, A121101, A122201
+FROM A102_1
+where A091002='1'  
+group by hs
+
+order by A000000
+;
+QUIT;
