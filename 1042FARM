@@ -1,3 +1,6 @@
+/* To read the data from excel file in the server by SAS EG and to produce statistical information */
+
+
 proc import datafile="\\saseg\D54\D54B\0_DATA\SS104TT.xlsx"
    DBMS=XLSX
    out=B102 REPLACE;
