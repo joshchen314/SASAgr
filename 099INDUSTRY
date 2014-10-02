@@ -1,3 +1,5 @@
+/* To read six source data, to merge those and to produce the statistical information */
+
 /*REVENUE POPULATION*/
 DATA AA1;
   DEL=1;
@@ -9,9 +11,9 @@ DATA AA0;
  INPUT @1  HUKEY    $12.
 @13 wh 1.
 @23 A030001 2.      /*主要經營種類*/
-			   @38 A051001 1.     /*休閒*/
-			   @66 A082001 6.     /*自行加工農畜產品銷售收入*/
-             @47 A071001 3. /*1.男常僱員工*/
+	    @38 A051001 1.     /*休閒*/
+	    @66 A082001 6.     /*自行加工農畜產品銷售收入*/
+            @47 A071001 3. /*1.男常僱員工*/
             @50 A071002 3. /*2.女常僱員工*/
             @53 A072001 3. /*1.男臨時員工*/
             @56 A072002 3. /*2.女臨時員工*/
