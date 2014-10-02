@@ -1,3 +1,5 @@
+/* To read data from the source and to save it as a SAS library file */
+
 FILENAME AGR 'D:\陳弦業\名冊\099年普查名冊\農牧業普查輸出資料\L1584';
 libname AGR  'D:\陳弦業\099年普查\099年縣市別報告\各業LIBARY\099年農牧業';
 DATA AGR.BASIC99;
