@@ -1,3 +1,5 @@
+/* To read the data from excel file in the server by SAS EG and to save it as SAS library */
+
 proc import datafile="\\saseg\D54\D54B\0_DATA\10308\SS104TT2.xlsx"
    DBMS=XLSX
    out=d102 REPLACE;
