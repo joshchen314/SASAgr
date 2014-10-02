@@ -1,4 +1,4 @@
-/* To read six source data, to merge those and to produce the statistical information */
+/* To read six source data by Macro language, to merge those and to produce the statistical information */
 
 /*REVENUE POPULATION*/
 DATA AA1;
