@@ -1,3 +1,6 @@
+/* To read data from the source and to save it as a SAS library file */
+
+
 /*定義資料名稱及來源*/
 filename a4 'D:\陳弦業\名冊\099年普查名冊\農事普查輸出資料\S121';
 libname D099 'D:\陳弦業\099年普查\099年縣市別報告\各業LIBARY\099年農事';
