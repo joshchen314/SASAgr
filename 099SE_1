@@ -1,3 +1,7 @@
+/* To read data from SAS library and to produce the statistical information */
+
+libname D099 'D:\陳弦業\...\099年農事';
+
 data T01;/*-------99年 表側------*/
 set D099.HUS;
  if hs in ('71','72') then do;  /*將資料按地區及縣市分類*/
