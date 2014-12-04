@@ -171,3 +171,9 @@ PROC UNIVARIATE data=outres33 plot normal;		/*檢測此變項是否為常態分�
 VAR res33;
 TITLE 'Tests for Normality of Residuals33';
 QUIT;
+
+
+proc qlim data = AGR.AGR099_HE_RAW1202 ;
+  model sel = ZA ZB ZC  x1_age /discrete;
+  model Y_YY = x1_age x2_edu x3_sex x4_pr x5_lnd x6_pl ZA ZB ZC X7_AGE X8_EDU X9_AGEEDU X10_EDU /select(sel=1);
+run;
