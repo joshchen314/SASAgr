@@ -1,0 +1,77 @@
+Solutions to Violations of Assumptions of Ordinary Least Squares Regression Models Using SAS®
+
+FROM: http://sugiclub.blogspot.tw/2007/06/solutions-to-violations-of-assumptions.html
+
+原文載點：http://www2.sas.com/proceedings/forum2007/131-2007.pdf
+
+QUOTE:
+/*------------------------------------------------------------------------------------------*/
+迴歸模式的四大假設：
+一、線性，
+二、獨立，
+三、常態，
+四、變異數同質性。
+五、共線性
+
+ASSUMPTION 1: LINEARITY
+
+當線性關係不存在時，有幾個方法可以來解決這個問題：
+
+一、 dummy variable
+二、變數變換有 log, inverse 或 polynomial。另外，spline transformation（使用 PROC TRANSREG）也是個不錯的點子。
+三、使用非線性模式，如 PROC GENMOD。
+
+ASSUMPTION 2: INDEPENDENCE OF ERROR TERMS
+
+第二個假定是迴歸模式的誤差項一定是需要互相獨立的。[自相關（autocorrelation）的情況。]
+
+要檢定模式是否有自相關，則可對殘差進行 Durbin-Watson 檢定（簡稱 DW）。
+另外也可以做一張殘差和時間相關自變數的圖。
+如果沒有自相關的情況，則圖上的點不會呈現特殊的趨勢。
+
+另外，也可以使用 Lagrange Multiplier general test 來檢查。
+
+自相關會導致 T 統計量膨脹，使得估計係數的標準誤被低估。假設檢定會是錯誤的。
+遇到這種情況的話有幾個解決的方法：
+
+一、不要只相信 DW test 的結果
+二、對自變數或依變數做 lag 變數變換
+三、考慮 time series model（使用 PROC AUTOREG）。
+
+ASSUMPTION 3: εi ~ N(0,σ2)
+
+誤差項需服從常態分配，應該是這幾個假設中最最最重要的一項。
+此外，變異數同質性也是不可忽略的（但卻經常被忽略！）。
+要檢定常態性，則必須將殘差抓出來進行 Shapiro-Wilk test 或 Kolmogorov-Smirnov test。
+Q-Q plot 也可以當作輔助判斷工具。這些檢定都可以用 PROC UNIVARIATE 完成
+
+欲檢驗模式是否有異質性（heteroskedasticity）的問題，
+可以進行 White test（在 model statement 後面加上 spec），
+或者去繪製殘差 v.s. 預測值的圖：
+
+違反上述這兩個假設，解決方法有：
+一、對依變數做變數變換。常見的變數變換為 square root, log 和 reciprocal。
+此外，作者也推薦使用 Duan's smearing operator。
+二、使用加權最小平方法（Weighted Least Square）。
+三、考慮 robust regression（詳見 PROC ROBUSTREG）。
+
+ASSUMPTION 4 : MEAN INDEPENDENCE : E[εi |Xij]=0
+
+違反這個假定則稱為 endogeneity。
+若違反這個假定，可能會導致參數估計值偏誤。
+
+ASSUMPTION 5: Xi IS UNCORRELATED TO Xj , i ≠ j
+
+其實這個假定若出現問題，則共線性的問題就跟著跑了出來。（或稱多重共線性）。
+在迴歸模式中，可使用變異數膨脹係數（VIF）或容忍值（tolerance）來當作判定共線性是否存在的標準。
+一般來說，VIF 大於 10 或 tolerance 小於 0.1 則表示有共線性的問題。
+在 SAS 內計算這兩個值只需要在 model statement 後面加上 VIF 和 tol 這兩個 option 即可
+
+若一個迴歸模式有共線性的問題，最容易產生的麻煩就是會讓自變數的估計參數產生異常的變動。
+根據筆者的經驗，在迴歸模式中最容易看出受到共線性影響的地方是，一個按照常理應該是「正」的估計
+參數（也就表示那個 X 和 Y 是正相關），結果估出來的係數是負的！以下有幾個方法可以解決共線性的問題：
+一、適度移除幾個具有互相高度相關的自變數。
+二、移除全部具有互相高度相關的自變數，而改用其交互作用項。
+三、增加樣本數。
+四、利用主成分來進行迴歸分析
+/*-----------------------------------------*/

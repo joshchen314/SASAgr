@@ -1,0 +1,222 @@
+FILENAME A99 'G:\SS\L1584';
+FILENAME A94 'G:\SS\L1027';
+filename  a89  'G:\SS\H3S301C';
+libname AGR  'G:\SS\';
+
+/* 2014 THESIS */
+/* 所得 經營管理者年齡與教育 僱用人數 主要經營種類*/
+/*       處理 2010年 資料      */
+DATA AGR.AGR099_ML_RAW01;
+INFILE A99 LRECL=1584;  /*---------99年農牧業------------*//*-----------------099-----------------*/
+INPUT
+@1 HUKEY199 $13. /*統一編號*/
+@1 hukey299 $12.
+@1 C00000199 2. /*鄉鎮市區代號 */
+@5 C00000299 3. /*村里代號*/
+@8 C00000399 2. /*鄰*/
+@10 C00000499 $3. /*連續編號*/
+@13 C00000599 1. /*表號*/
+@23 C01010199 2. /*一、經營組織型態為何?*/
+@27 C03110199 1. /*(一)性別*/
+@28 C03210199 2. /*(二)出生年次*/
+@30 C03310199 1. /*(三)教育程度*/
+@31 C03000199 2. /*三、99年全年主要經營農牧業種類為何?*/
+@55 C07100199 3. /*1. 常僱員工男*/
+@58 C07100299 3. /*2. 常僱員工女*/
+@61 C07200199 3. /*1. 臨時員工男*/
+@64 C07200299 3. /*2. 臨時員工女*/
+@67 C07310199 3. /*1. 不支薪資人員男*/
+@70 C07310299 3. /*2. 不支薪資人員女*/
+@73 C08100199 7. /*1. 農畜產品銷售收入*/
+@83 C08200199 7. /*2. 自行加工農畜產品銷售收入*/
+@90 C08300199 7. /*3. 委外加工農畜產品銷售收入*/
+@97 C08400199 7. /*4. 休閒農業服務收入*/
+@245 C10100199 6. /*（一）年底可耕作地總面積*/;
+
+/*       進一步處理 2010年 產出關心的變數      */
+if C00000599=1 then C02010199=(99-C03210199)-15;
+	   if C00000199 in ('65','63','17','18','02','03','04') then hs99=1;
+	   if C00000199 in ('66','05','07','08','09') then hs99=2;
+	   if C00000199 in ('67','64','20','10','13','16','71','72') then hs99=3;
+	   if C00000199 in ('14','15') then hs99=4;
+
+sales=C08100199;
+manu=C08200199+C08300199;
+rec=C08400199;
+if sales=. then sales=0;if manu=. then manu=0;if rec=. then rec=0;
+INCOME99=sales+manu+rec;
+PL99= C07100199+  C07100299+ C07200199+ C07200299+ C07310199+ C07310299;  
+C03210199_a=99-C03210199;
+if 15<=C03210199_a<=44 then age99=1;
+if 45<=C03210199_a<=64 then age99=2;
+if 65<=C03210199_a then age99=3;
+
+if C03000199 in (1,2 ) then pr_ck=1;
+else if C03000199 in (3,7 ) then pr_ck=2;
+else if C03000199 in (4,5,6 )  then pr_ck=3;
+else if C03000199 in (8,9 )  then pr_ck=4;
+else if C03000199 in (10,11,12 )  then pr_ck=5;
+else if C03000199 in (13,14,15,16 )  then pr_ck=6;
+else pr_ck=7;
+
+
+
+WK_1=C07100199+C07100299;
+WK_2=C07200199+C07200299 ;
+WK_3=C07310199+C07310299;
+WK_TT=WK_1+WK_2+WK_3;
+
+state=HUKEY299;
+year=2010;
+y_icm=sales;
+x1_age=C03210199_a;
+x2_edu=C03310199;
+x3_sex=C03110199;
+x4_pr=pr_ck;
+x5_lnd=C10100199/100;
+x6_pl=PL99;		run;
+
+/*       處理 2005年 資料      */
+data AGR.AGR094_ML_RAW01;/*---------94年農牧業------------*//*-----------------094-----------------*/
+infile a94 lrecl=1027  DSD MISSOVER END=eof;
+input 
+         @1 HUKEY194 $13.
+         @1 hukey294 $12.
+         @1 HS2 2.
+		 @1 TOWN2 4.
+		 @13 wh 1.
+         @23 C13101 1.             /*主要經營型態*/
+		 @24 C13201 2.
+         @28 C14001 2.             /*農畜產品銷售金額*/
+		 @37 C15108 1.
+         @38 C15201 2.             /*休閒收入*/
+		 @41 C16102 1.
+         @43 C16201 2.             /*加工收入*/
+		 @45 C17101 2.
+         @49 C17301 1.             /* SEX*/
+		 @50 C17302 2.             /* AGE*/
+         @52 C17303 1.             /*EDU*/
+		 @53 wk1 3.
+		 @56 wk2 3.
+		 @59 wk3 3.
+		 @62 wk4 3.
+		 @65 wk5 3.
+		 @68 wk6 3.
+		 @356 C31001 6.    /*可耕作地面積*/
+		 @1021 hs 2.
+		 @1021 town 4.
+         @75 go 1.@;
+ do i=1 to 20;
+ input         sex 1.
+		          bd 2.
+				  edu 1.
+				  wat 1. 
+				  id 1.
+				  days 1.
+				  DDD 7.@;
+         if i=1 then wk7=0;
+         if days IN (2,3,4,5,6,7,8) then wk7=wk7+1;
+         if i=1 then wk60=0;
+         if days>=4 then wk60=wk60+1;
+				  end;       
+         UBUSIS=0;
+         IF C13101 NE 3 &  C13201 ne 18 THEN UBUSIS=1; else UBUSIS =0;
+		 IF UBUSIS=1 THEN WK7B=WK7;else  WK7B=0;
+
+         num=1;
+		 wka=wk1+wk2;
+		 wkb=wk3+wk4;
+		 wkc=wk5+wk6+WK7B;
+		 wk=wka+wkb+wkc; 
+/*       進一步處理 2005年 產出關心的變數      */
+       if C14001=  1 then rev1=         0;     else if C14001=  2 then rev1=       10;else if C14001=  3 then rev1=       25;else if C14001=  4 then rev1=       40;else if C14001=  5 then rev1=       75;
+else if C14001=  6 then rev1=     150;else if C14001=  7 then rev1=     250;else if C14001=  8 then rev1=     350;else if C14001=  9 then rev1=     450;else if C14001=10 then rev1=     750;
+else if C14001=11 then rev1=   1250;else if C14001=12 then rev1=   1750;else if C14001=13 then rev1 =  2500;else if C14001=14 then rev1 =  4000;else if C14001=15 then rev1 =  7500;
+else if C14001=16 then rev1 =15000;else if C14001=17 then rev1 =25000;else if C14001=18 then rev1 =40000;else if C14001=19 then rev1 =95870;
+       if C15201=  1 then rev2=  0;     else if C15201=  2 then rev2=10;else if C15201=  3 then rev2=25;else if C15201=  4 then rev2=40;else if C15201=  5 then rev2=75;
+else if C15201=  6 then rev2=150;else if C15201=  7 then rev2=250;else if C15201=  8 then rev2=350;else if C15201=  9 then rev2=450;else if C15201=10 then rev2=750;
+else if C15201=11 then rev2=1250;else if C15201=12 then rev2=1750;else if C15201=13 then rev2 =2500;else if C15201=14 then rev2 =4000;else if C15201=15 then rev2 =7500;
+else if C15201=16 then rev2 =15000;else if C15201=17 then rev2 =25000;else if C15201=18 then rev2 =40000;else if C15201=19 then rev2 =50000;
+       if C16201=  1 then rev3=0;else if C16201=  2 then rev3=10;else if C16201=  3 then rev3=25;else if C16201=  4 then rev3=40;else if C16201=  5 then rev3=75;
+else if C16201=  6 then rev3=150;else if C16201=  7 then rev3=250;else if C16201=  8 then rev3=350;else if C16201=  9 then rev3=450;else if C16201=10 then rev3=750;
+else if C16201=11 then rev3=1250;else if C16201=12 then rev3=1750;else if C16201=13 then rev3 =2500;else if C16201=14 then rev3 =4000;else if C16201=15 then rev3 =7500;
+else if C16201=16 then rev3 =15000;else if C16201=17 then rev3 =25000;else if C16201=18 then rev3 =40000;else if C16201=19 then rev3 =50000;
+sales =REV1;
+manu =REV2;
+rec  =REV3;
+
+INCOME94=rev1+ rev2+ rev3;
+
+if C13201 in(1,2 ) then pr_ck=1;else if C13201 in(3,7 ) then pr_ck=2;else if C13201 in(4,5,6 )  then pr_ck=3;
+else if C13201 in(8,9 )  then pr_ck=4;else if C13201 in(10,11,12 )  then pr_ck=5;else if C13201 in(13,14,15,16 )  then pr_ck=6;
+else pr_ck=7;
+
+state=HUKEY294;
+year=2005;
+y_icm=sales;
+x1_age=C17302;
+x2_edu=C17303;
+x3_sex=C17301;
+x4_pr=pr_ck;
+x5_lnd=C31001/100;
+x6_pl=wk;	run;
+
+DATA AGR.AGR089_ML_RAW01;
+  INFILE A89 LRECL=1157;
+INPUT
+@1 HUKEY $13. /*統一編號*/
+@1 hukey99 $12.
+@1 C000001 4. /*鄉鎮市區代號 */
+@5 C000002 3. /*村里代號*/
+@8 C000003 2. /*鄰*/
+@10 C000004 $3. /*連續編號*/
+@13 C000005 1. /*表號*/
+
+/*戶內*/
+@22 C12201 2. /*從事自家 男生人數*/
+@24 C12202 2. /*從事自家 女生人數*/
+
+@32 C11101 2. /*農牧場 經營型態*/
+
+@34 C31001 1. /*GENDER*/
+@35 C32001 2. /*AGE*/
+@37 C33001 1. /*EDU*/
+
+@40 C41101 3. /*1. 常僱員工*/
+@43 C42101 3. /*1. 臨時員工*/
+@46 C43101 3. /*1. 不支薪資人員*/
+
+@49 C41001 6. /*LND*/
+
+@73 C51001 2. /*/SALES*/
+
+@80 C71001 2.
+;
+/*       進一步處理 2000年 產出關心的變數      */
+C14001=C51001;
+       if C14001=  1 then rev1=         0;     else if C14001=  2 then rev1=       10;else if C14001=  3 then rev1=       30;else if C14001=  4 then rev1=       70;else if C14001=  5 then rev1=       145;
+else if C14001=  6 then rev1=     245;else if C14001=  7 then rev1=     345;else if C14001=  8 then rev1=     445;else if C14001=  9 then rev1=     745;else if C14001=10 then rev1=     1245;
+else if C14001=11 then rev1=   1745;else if C14001=12 then rev1=   2495;else if C14001=13 then rev1 =  3995;else if C14001=14 then rev1 =  7495;else if C14001=15 then rev1 =  14995;
+else if C14001=16 then rev1 =24995;else if C14001=17 then rev1 =39995;else if C14001=18 then rev1 =50000;
+sales =rev1;
+manu =0;
+rec  =0;
+
+INCOME94=rev1;
+
+if C71001 in(1,2 ) then pr_ck=1;else if C71001 in(3,7 ) then pr_ck=2;else if C71001 in(4,5,6 )  then pr_ck=3;
+else if C71001 in(8,9 )  then pr_ck=4;else if C71001 in(10,11,12 )  then pr_ck=5;else if C71001 in(13,14,15,16 )  then pr_ck=6;
+else pr_ck=7;
+
+wk=C12201 +C12202+ C41101 + C42101+C43101;
+
+state=hukey99;
+year=2000;
+y_icm=INCOME94;
+x1_age=C32001;
+x2_edu=C33001;
+x3_sex=C31001;
+x4_pr=pr_ck;
+x5_lnd=C41001/100;
+x6_pl=wk;						
+RUN;

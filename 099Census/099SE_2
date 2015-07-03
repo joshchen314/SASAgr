@@ -1,0 +1,420 @@
+/* To read data from SAS library and to produce the statistical information */
+
+libname D099 'D:\陳弦業\...\099年農事';
+
+data T01;/*-------99年 表側------*/
+set D099.HUS;
+ if hs in ('71','72') then do;  /*將資料按地區及縣市分類*/
+      area1=2;
+      area2=0;
+end;
+else do;
+       area1=1;
+	   if hs in ('65','63','17','18','02','03','04') then area2=1;
+	   if hs in ('66','05','07','08','09') then area2=2;
+	   if hs in ('67','64','20','10','13','16') then area2=3;
+	   if hs in ('14','15') then area2=4;
+end;
+
+IF D085001 IN (1,2,3,4,5,6,7,8,9,10,11, 12) THEN D085001_1=1; /*主要服務項目*/
+IF D085001 IN (13 ,14,15) THEN D085001_1=2;
+
+   IF D020001<34 THEN yr=1; /*開業年份*/  /*34年以前*/
+   IF D020001=34 THEN yr=2; /*34*/
+   DO i=1 TO 4; /*45,55,65,75*/
+     IF 35+(I-1)*10<=D020001<45+(I-1)*10 THEN yr=1+i;
+END; /*80,85,90,95*/
+   DO i=1 TO 5; 
+     IF 75+(I-1)*5<=D020001<80+(I-1)*5 THEN yr=5+i;
+END; 
+
+PL=D041001+D041002+D042001+D042002+D043001+D043002;/*從業員工人數= 常僱+臨時+不支薪*/
+CPL=0;/*從業員工人數*/
+   IF PL IN (1,2,3,4,5,6,7,8,9) THEN CPL=PL;
+   IF 1<=PL<5 THEN CPL_2=1;/* 1-4 */
+   IF 5<=PL<10 THEN CPL_2=2;
+IF 10<=PL<=39 THEN DO;/* 10-39 */
+   IF 10<=PL<=14 THEN CPL_2=3;
+   IF 15<=PL<=19 THEN CPL_2=4;
+   IF 20<=PL<=29 THEN CPL_2=5;
+   IF 30<=PL<=39 THEN CPL_2=6;
+END;
+   IF 40<=PL THEN CPL_2=7; /* 11 */
+
+   YY=99-D032001;/*管理者年齡*/
+DO I=1 TO 11;
+   IF 15+(I-1)*5<=YY<=19+(I-1)*5 THEN YOY=I;
+END;
+IF 70<=YY THEN YOY=12;
+
+IF 20<=D050001<50 THEN MOM=1;/*總收入*/
+IF 50<=D050001<100 THEN MOM=2;
+IF 100<=D050001<500 THEN DO;
+  DO i=1 TO 4; 
+     IF 100+(I-1)*100<=D050001<200+(I-1)*100 THEN MOM=2+I;
+  END; END;
+IF 500<=D050001<2000 THEN DO;
+  DO i=1 TO 3; 
+     IF 500*I<=D050001<500*(I+1) THEN MOM=6+I;
+  END;END; 
+IF 2000<=D050001<3000 THEN MOM=10;
+IF 3000<=D050001<5000 THEN MOM=11;
+IF 5000<=D050001 THEN MOM=12;RUN;
+/*---------------------------------------------------------   列印巨集  ---------------------------------------------------------*/
+%MACRO A1(B,S,N,O);
+PROC SUMMARY DATA=T01;
+   CLASS AREA1 AREA2 HS;
+   VAR COL&B - COL&S;
+ OUTPUT OUT=T&N._S&O  SUM=SCOL&B - SCOL&S;%MEND A1;
+ %MACRO A2(B,S,N,O);
+PROC SUMMARY DATA=T01;
+   CLASS D010001;
+   VAR COL&B - COL&S;
+ OUTPUT OUT=T&N._S&O  SUM=SCOL&B - SCOL&S;%MEND A2;
+ %MACRO A3(B,S,N,O);
+PROC SUMMARY DATA=T01;
+   CLASS yr;
+   VAR COL&B - COL&S;
+ OUTPUT OUT=T&N._S&O  SUM=SCOL&B - SCOL&S;%MEND A3;
+ %MACRO A4(B,S,N,O);
+PROC SUMMARY DATA=T01;
+   CLASS D085001 D085001_1;
+   VAR COL&B - COL&S;
+ OUTPUT OUT=T&N._S&O  SUM=SCOL&B - SCOL&S;%MEND A4;
+ %MACRO A5(B,S,N,O);
+PROC SUMMARY DATA=T01;
+   CLASS CPL CPL_2;
+   VAR COL&B - COL&S;
+ OUTPUT OUT=T&N._S&O  SUM=SCOL&B - SCOL&S;%MEND A5;
+  %MACRO A6(B,S,N,O);
+PROC SUMMARY DATA=T01;
+   CLASS MMY;
+   VAR COL&B - COL&S;
+ OUTPUT OUT=T&N._S&O  SUM=SCOL&B - SCOL&S;%MEND A6;
+data T01;/*-------99年 表 1------*/
+set T01;
+ ARRAY dummys{7} COL1 - COL7; 
+ DO i=1 TO 7; 
+ dummys(i) = 0; 
+ END; 
+ dummys(D010001) = 1; 
+%A1(1,7,01,1);
+%A4(1,7,01,2);
+data T01;/*-------99年 表 2------*/
+set T01;
+IF D020001<34 THEN D020001_1=1;
+IF D020001=34 THEN D020001_1=2;
+DO i=1 TO 4; 
+IF 35+(I-1)*10<=D020001<45+(I-1)*10 THEN D020001_1=1+i;
+END; 
+DO i=1 TO 5; 
+IF 75+(I-1)*5<=D020001<80+(I-1)*5 THEN D020001_1=5+i;
+END; 
+ARRAY dummys{10} COL8 - COL17; 
+DO i=1 TO 10; 
+dummys(i) = 0; 
+END; 
+dummys(D020001_1) = 1; 
+%A1(8,17,02,1);
+%A2(8,17,02,2);
+%A4(8,17,02,3);
+data T01;/*-------99年 表 3------*/
+set T01;
+pl=D041001+D041002+D042001+D042002+D043001+D043002;
+IF 1<=pl<5 THEN ppl=1;
+IF 5<=pl<10 THEN ppl=2;
+IF 10<=pl<15 THEN ppl=3;
+IF 15<=pl<20 THEN ppl=4;
+IF 20<=pl<30 THEN ppl=5;
+IF 30<=pl<40 THEN ppl=6;
+IF 40<=pl THEN ppl=7;
+IF PL<10 THEN DO;
+ARRAY dummys{9} COL18 - COL26; 
+  DO i=1 TO 9; 
+  dummys(i) = 0; 
+  END; 
+  dummys(pl) = 1; 
+  END;
+     ARRAY dummyss{7} COL27 - COL33; 
+  DO i=1 TO 7; 
+  dummyss(i) = 0; 
+  END; 
+  dummyss(ppl) = 1; 
+%A1(18,33,03,1);
+%A2(18,33,03,2);
+%A3(18,33,03,3);
+%A4(18,33,03,4);
+data T01;/*-------99年 表 4------*/
+set T01;
+IF 20<=D050001<50 THEN MMY=1;
+IF 50<=D050001<100 THEN MMY=2;
+IF 100<=D050001<500 THEN DO;
+DO i=1 TO 4; 
+     IF 100+(I-1)*100<=D050001<200+(I-1)*100 THEN MMY=2+I;
+  END; END;
+IF 500<=D050001<2000 THEN DO;
+  DO i=1 TO 3; 
+     IF 500*I<=D050001<500*(I+1) THEN MMY=6+I;
+  END; END;
+IF 2000<=D050001<3000 THEN MMY=10;
+IF 3000<=D050001<5000 THEN MMY=11;
+IF 5000<=D050001 THEN MMY=12;
+     ARRAY dummys{12} COL34 - COL45; 
+  DO i=1 TO 12; 
+  dummys(i) = 0; 
+  END; 
+  dummys(MMY) = 1;
+%A1(34,45,04,1);
+%A2(34,45,04,2);
+%A4(34,45,04,3);
+%A5(34,45,04,4);
+data T01;/*-------99年 表 5------*/
+set T01;
+ ARRAY dummys{15} COL46 - COL60; 
+ DO i=1 TO 15; 
+ dummys(i) = 0; 
+ END; 
+ dummys(D085001) = 1; 
+COL61=0;COL62=0; 
+%A1(46,62,05,1);
+PROC SUMMARY DATA=T01;
+   CLASS YOY D031001;
+   VAR COL46 - COL62;
+ OUTPUT OUT=T05_S2  SUM=SCOL46 - SCOL62;
+PROC SUMMARY DATA=T01;
+CLASS D033001 D031001;
+VAR COL46 - COL62;
+OUTPUT OUT=T05_S3  SUM=SCOL46 - SCOL62;
+%A6(46,62,05,4);
+/*--------------------------------------------------------------------------99年 表 6------------------------------------------------------------------------------*/
+%MACRO H06(startnum,stopnum);
+%DO N=&startnum %TO &stopnum;
+    data T01;    set T01;
+    IF &N=1 THEN DO;
+col195=0;col196=0;col197=0;
+col63=0;col64=0;col65=0;col66=0;col67=0;col68=0;col69=0;col70=0;col71=0;col72=0;col73=0;col74=0;col75=0;col76=0;col77=0;col78=0;
+if D084011=1 then col63=1; t=sum(of col63-col78);if D082011=1 then col195=1;if D082012=1 then col196=1;if D082013=1 then col197=1; END;
+    IF &N=2 THEN DO;
+col63=0;col64=0;col65=0;col66=0;col67=0;col68=0;col69=0;col70=0;col71=0;col72=0;col73=0;col74=0;col75=0;col76=0;col77=0;col78=0;
+col195=0;col196=0;col197=0;
+if D084021=4 & D083021>0 then col66=1; 
+if D084021=8 & D083021>0  then col70=1; 
+if D082021=1 then col195=1;if D082022=1 then col196=1;if D082023=1 then col197=1;
+t=sum(of col63-col78);END;
+    IF &N=3 THEN DO;
+col63=0;col64=0;col65=0;col66=0;col67=0;col68=0;col69=0;col70=0;col71=0;col72=0;col73=0;col74=0;col75=0;col76=0;col77=0;col78=0;
+col195=0;col196=0;col197=0;
+if D083031>0 then col68=1; t=sum(of col63-col78);
+if D082031=1 then col195=1;if D082032=1 then col196=1;if D082033=1 then col197=1; end;
+    IF &N=4 THEN DO;
+col63=0;col64=0;col65=0;col66=0;col67=0;col68=0;col69=0;col70=0;col71=0;col72=0;col73=0;col74=0;col75=0;col76=0;col77=0;col78=0;
+col195=0;col196=0;col197=0;
+if D084041=2 & D083041>0 then col64=1; 
+if D084041=3 & D083041>0  then col65=1; 
+if D084041=5 & D083041>0  then col67=1; 
+if D084041=7 & D083041>0  then col69=1; 
+if D084041=8 & D083041>0  then col70=1; 
+if D084041=9 & D083041>0  then col71=1; 
+if D082041=1 then col195=1;if D082042=1 then col196=1;if D082043=1 then col197=1; t=sum(of col63-col78);END;
+    if &N=5 then do;
+col195=0;col196=0;col197=0;
+col63=0;col64=0;col65=0;col66=0;col67=0;col68=0;col69=0;col70=0;col71=0;col72=0;col73=0;col74=0;col75=0;col76=0;col77=0;col78=0;
+if D0840&N.1=1 then col63=1;
+if D0840&N.1=2 then col64=1;
+if D0840&N.1=3 then col65=1;
+if D0840&N.1=4 then col66=1;
+if D0840&N.1=5 then col67=1;
+if D0840&N.1=6 then col68=1;
+if D0840&N.1=7 then col69=1;
+if D0840&N.1=8 then col70=1;
+if D0840&N.1=9 then col71=1;
+if D0820&N.1=1 then col195=1;if D0820&N.2=1 then col196=1;if D0820&N.3=1 then col197=1;t=sum(of col63-col78);end;
+    if &N=6 then do;
+col195=0;col196=0;col197=0;
+col63=0;col64=0;col65=0;col66=0;col67=0;col68=0;col69=0;col70=0;col71=0;col72=0;col73=0;col74=0;col75=0;col76=0;col77=0;col78=0;
+if D0840&N.1=6 then col68=1; t=sum(of col63-col78);
+if D0820&N.1=1 then col195=1;if D0820&N.2=1 then col196=1;if D0820&N.3=1 then col197=1;end;
+    if 7<=&N<=12 then do;
+col195=0;col196=0;col197=0;
+col63=0;col64=0;col65=0;col66=0;col67=0;col68=0;col69=0;col70=0;col71=0;col72=0;col73=0;col74=0;col75=0;col76=0;col77=0;col78=0;
+	  IF 7<=&N<=9 THEN DO;
+if D0840&N.1=1 then col63=1;
+if D0840&N.1=2 then col64=1;
+if D0840&N.1=3 then col65=1;
+if D0840&N.1=4 then col66=1;
+if D0840&N.1=5 then col67=1;
+if D0840&N.1=6 then col68=1;
+if D0840&N.1=7 then col69=1;
+if D0840&N.1=8 then col70=1;
+if D0840&N.1=9 then col71=1;
+if D0820&N.1=1 then col195=1;if D0820&N.2=1 then col196=1;if D0820&N.3=1 then col197=1;t=sum(of col63-col78);end;
+	  ELSE DO;
+if D084&N.1=1 then col63=1;
+if D084&N.1=2 then col64=1;
+if D084&N.1=3 then col65=1;
+if D084&N.1=4 then col66=1;
+if D084&N.1=5 then col67=1;
+if D084&N.1=6 then col68=1;
+if D084&N.1=7 then col69=1;
+if D084&N.1=8 then col70=1;
+if D084&N.1=9 then col71=1;
+if D082&N.1=1 then col195=1;if D082&N.2=1 then col196=1;if D082&N.3=1 then col197=1;t=sum(of col63-col78);end;END;
+    if 13<=&N<=15 then do;
+col195=0;col196=0;col197=0;
+col63=0;col64=0;col65=0;col66=0;col67=0;col68=0;col69=0;col70=0;col71=0;col72=0;col73=0;col74=0;col75=0;col76=0;col77=0;col78=0;
+if D084&N.1=10 then col72=1;
+if D084&N.1=11 then col73=1;
+if D084&N.1=12 then col74=1;
+if D084&N.1=13 then col75=1;
+if D084&N.1=14 then col76=1;
+if D084&N.1=15 then col77=1;
+if D084&N.1=16 then col78=1;
+if D082&N.1=1 then col195=1;if D082&N.2=1 then col196=1;if D082&N.3=1 then col197=1;t=sum(of col63-col78);end;
+   PROC SUMMARY DATA=T01;
+VAR t COL63-col78 COL195-col197;
+OUTPUT OUT=zT06_S&N  SUM=st SCOL63-scol78 SCOL195-scol197;
+   %END;   %MEND H06;       
+%h06(1,15);
+data T06_S1;
+set zT06_S1 - zT06_s15;
+data T01;/*-------99年 表 7------*/
+set T01;COL79=0;COL80=0;COL81=0;
+%MACRO H07(startnum,stopnum);
+%DO i=&startnum %TO &stopnum;
+    %LET J=%EVAL(3*(&I-1)+83);                                         /* IMPORTANT*/
+    %LET K=%EVAL(3*(&I-1)+84);                                        /* IMPORTANT*/
+    %LET L=%EVAL(3*(&I-1)+82);                                        /* IMPORTANT*/
+COL&J=D04&i.001;
+COL&K=D04&i.002;
+COL&L=COL&J+COL&K;
+COL79=COL79+D04&i.001+D04&i.002;
+COL80=COL80+D04&i.001;
+COL81=COL81+D04&i.002;
+%END;%MEND H07;%h07(1,3);
+%A1(79,90,07,1);
+%A4(79,90,07,2);
+data T01;/*-------99年 表 8------*/
+set T01;
+IF D060001>0 THEN COL92=1;ELSE COL92=0;
+COL93=D060001*0.01;
+IF D060002>0 THEN COL94=1;ELSE COL94=0;
+COL95=D060002;
+IF D060003>0 THEN COL96=1;ELSE COL96=0;
+COL97=D060003;
+IF D060004>0 THEN COL98=1;ELSE COL98=0;
+COL99=D060004;
+IF D060005=1 THEN COL100=1;
+IF COL92+COL94+COL96+COL98>0 THEN COL91=1;
+ %A1(91,100,08,1);
+ %A4(91,100,08,2);
+data T01;/*-------99年 表 9------*/
+set T01;
+%MACRO H09(startnum,stopnum);
+%DO i=&startnum %TO &stopnum;
+    %LET J=%EVAL(2*(&I-1)+101);                                         /* IMPORTANT*/
+    %LET K=%EVAL(2*(&I-1)+102);                                        /* IMPORTANT*/
+    IF 1<=&i<=9 then do;
+IF D07000&i>0 THEN COL&J=1;ELSE COL&J=0;
+COL&K=D07000&i;    end;
+    else do;
+IF D0700&i>0 THEN COL&J=1;ELSE COL&J=0;
+COL&K=D0700&i;    end;
+%END;
+%MEND H09;       
+%h09(1,30);
+IF D070031>0 THEN COL161=1;ELSE COL161=0;
+IF D070031=0 THEN COL162=1;ELSE COL162=0;
+%A1(101,161,09,1);
+%A2(101,161,09,2);
+%A4(101,161,09,3);
+/*-------99年 表 10------*/
+data T01;
+set T01;
+%MACRO H10(startnum,stopnum);
+%DO i=&startnum %TO &stopnum;
+    %LET J=%EVAL(2*(&I-1)+163);                                         /* IMPORTANT*/
+    %LET K=%EVAL(2*(&I-1)+164);                                        /* IMPORTANT*/
+    IF 1<=&i<=9 then do;
+IF D0830&i.1>0 THEN COL&J=1;ELSE COL&J=0;
+COL&K=D0830&i.1;    end;
+    else do;
+IF D083&i.1>0 THEN COL&J=1;   ELSE COL&J=0;
+COL&K=D083&i.1;
+    IF D083&I.1 =14 THEN DO;
+	   IF D083&i.2>0 THEN COL193=1;  ELSE COL193=0;	   COL194=D083&i.2;	   END;    end;
+%END;
+%MEND H10;       
+%h10(1,15);
+%A1(163,194,10,1);
+%A2(163,194,10,2);
+%A5(163,194,10,3);
+%A6(163,194,10,4);
+/*-------99年 表 11------*/
+%MACRO H11(startnum,stopnum);
+%DO N=&startnum %TO &stopnum;
+  data T01;    set T01;
+    col198=0;col199=0;col200=0;t=0;
+
+    if 0<&N<10 then do;
+        if D0820&N.1=1 then col198=1;if D0820&N.2=1 then col199=1;if D0820&N.3=1 then col200=1;
+        if D0820&N.1+D0820&N.2+D0820&N.3>0 then t=1;    end;
+    else do;
+        if D082&N.1=1 then col198=1;if D082&N.2=1 then col199=1;if D082&N.3=1 then col200=1;
+        if D082&N.1+D082&N.2+D082&N.3>0 then t=1;    end;
+
+    PROC SUMMARY DATA=T01;
+      VAR t COL198-col200;
+      OUTPUT OUT=zT11_S&N  SUM= st SCOL198-scol200;
+%END;      %MEND H11;       %h11(1,15);
+data T11_S1;    set zT11_S1 - zT11_s15;    run;
+
+
+
+
+PROC SQL;                /*---------------- SQL SQL SQL SQL SQL SQL SQL--------------------------------*/
+create table ZZZ as
+SELECT * 
+FROM T01
+where D083142>0;
+QUIT;
+run;
+
+PROC SQL;                /*---------------- SQL SQL SQL SQL SQL SQL SQL--------------------------------*/
+create table ZZZ02 as
+SELECT * 
+FROM T01_s1 as m  inner join T04_s1 as n
+on m._FREQ_=n._FREQ_
+;
+QUIT;
+run;
+
+
+proc summary data= T06_S1;          /*----------  表六  針對 "主要服務農畜種類代號 ----------"*/
+var scol63-scol78;
+output out=t12 sum=scol63-scol78;
+run;
+proc transpose data=t12 out=t12_t ;   /* 轉置 */
+  var scol63-scol78; 
+run;
+proc print data= t12_t;run;
+
+
+%MACRO AT12(B,S);
+%DO I=&B %TO &S;
+%LET K=%EVAL(250+&I);     
+       IF D084011=&I OR D084021=&I OR D084031=&I OR D084041=&I OR D084051=&I OR D084061=&I OR D084071=&I OR D084081=&I OR D084091=&I OR D084101=&I OR D084111=&I OR D084121=&I OR D084141=&I OR D084151=&I THEN COL&K=1;ELSE COL&K=0;
+%END;
+%MEND AT12;
+DATA T12_1;
+SET T01;
+%AT12(1,16);
+RUN;
+
+
+PROC SUMMARY DATA=T12_1;
+VAR COL251-COL266;
+OUTPUT OUT=T12_2 SUM=SCOL251-SCOL266;
+proc transpose data=T12_2 out=T12_2t ;   /* 轉置 */
+  var SCOL251-SCOL266; 
+run;
+proc print data= T12_2t;run;
